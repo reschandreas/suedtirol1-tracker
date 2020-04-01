@@ -1,23 +1,33 @@
-# Dockerfile for creating a statically-linked Rust application using docker's
-# multi-stage build feature. This also leverages the docker build cache to avoid
-# re-downloading dependencies if they have not changed.
-FROM rust:latest AS build
-WORKDIR /usr/src
+# ------------------------------------------------------------------------------
+# Cargo Build Stage
+# ------------------------------------------------------------------------------
 
-# Create a dummy project and build the app's dependencies.
-# If the Cargo.toml or Cargo.lock files have not changed,
-# we can use the docker build cache and skip these (typically slow) steps.
-RUN USER=root cargo new suedtirol1-tracker
+FROM rust:latest as cargo-build
+
 WORKDIR /usr/src/suedtirol1-tracker
-COPY Cargo.toml Cargo.lock ./
+
+COPY Cargo.toml Cargo.toml
+
+RUN mkdir src/
+
+RUN echo "fn main() {println!(\"if you see this, the build broke\")}" > src/main.rs
+
 RUN cargo build --release
 
-# Copy the source and build the application.
-COPY src ./src
+RUN rm -f target/release/deps/suedtirol1-tracker*
+
+COPY . .
+
+RUN cargo build --release
+
 RUN cargo install --path .
 
-# Copy the statically-linked binary into a scratch container.
+# ------------------------------------------------------------------------------
+# Final Stage
+# ------------------------------------------------------------------------------
+
 FROM scratch
-COPY --from=build /usr/local/cargo/bin/suedtirol1-tracker .
-USER 1000
-CMD ["./suedtirol1-tracker"]
+
+COPY --from=cargo-build /usr/local/cargo/bin/suedtirol1-tracker /usr/local/bin/suedtirol1-tracker
+
+CMD ["suedtirol1-tracker"]
