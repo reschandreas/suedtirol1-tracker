@@ -25,8 +25,7 @@ RUN cargo install --path .
 # ------------------------------------------------------------------------------
 # Final Stage
 # ------------------------------------------------------------------------------
-
-FROM scratch
+FROM alpine:latest
 
 COPY --from=cargo-build /usr/local/cargo/bin/suedtirol1-tracker /usr/local/bin/suedtirol1-tracker
 
