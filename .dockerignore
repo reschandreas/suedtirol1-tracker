@@ -1,5 +1,5 @@
 Dockerfile
 .dockerignore
 docker-compose.yaml
-.gitlab-ci.yaml
+.gitlab-ci.yml
 target/
