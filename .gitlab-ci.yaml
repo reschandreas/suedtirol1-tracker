@@ -1,0 +1,39 @@
+image: docker:git
+
+services:
+  - docker:dind
+
+variables:
+  REGISTRY: registry.gitlab.com
+  IMAGE: $REGISTRY/andreas_resch/suedtirol1-tracker
+  DOCKER_SERVICE_NAME: suedtirol1-tracker
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  only:
+    - master
+  script:
+    - docker build -t $IMAGE:latest .
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
+    - docker push $IMAGE:latest
+
+deploy:
+  stage: deploy
+  only:
+    - master
+  before_script:
+    - mkdir -p /root/.ssh
+    - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+
+  script:
+    - SETUP="cd ~/container/andreas"
+    - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY"
+    - PULL="docker-compose -f docker-compose.yml pull --quiet"
+    - BUILD="docker-compose -f docker-compose.yml up -d $DOCKER_SERVICE_NAME"
+    - ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$SETUP && $LOGIN && $PULL && $BUILD"
+
