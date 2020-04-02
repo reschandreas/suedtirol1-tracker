@@ -29,4 +29,4 @@ FROM alpine:latest
 
 COPY --from=cargo-build /usr/local/cargo/bin/suedtirol1-tracker /usr/local/bin/suedtirol1-tracker
 
-CMD ["suedtirol1-tracker"]
+CMD ["/usr/local/bin/suedtirol1-tracker"]
