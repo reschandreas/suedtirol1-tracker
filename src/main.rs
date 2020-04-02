@@ -1,32 +1,35 @@
-use chrono::{Utc};
+use chrono::Utc;
 use serde::Deserialize;
-use std::io::Write;
 use std::fs::OpenOptions;
+use std::io::Write;
 use std::{thread, time};
 
 #[derive(Debug, Deserialize)]
 struct Log {
     date: String,
-    data: ApiResult
+    data: ApiResult,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 struct Song {
     artist: String,
-    title: String
+    title: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 struct ApiResult {
     past: Song,
     present: Option<Song>,
-    future: Song
+    future: Song,
 }
 
 fn main() {
     let mut result = String::from("");
     loop {
-        let re = get_json("http://www.suedtirol1.it/routing/acc_fun_interaktiv/api/v1/playlist/index.json?v=1").unwrap();
+        let re = get_json(
+            "http://www.suedtirol1.it/routing/acc_fun_interaktiv/api/v1/playlist/index.json?v=1",
+        )
+        .unwrap();
         if re.past.title != result {
             let mut file = OpenOptions::new()
                 .write(true)
@@ -36,8 +39,8 @@ fn main() {
                 .unwrap();
             result = re.past.title.clone();
             let log = Log {
-                date : Utc::now().to_string(),
-                data : re,
+                date: Utc::now().to_string(),
+                data: re,
             };
 
             if let Err(e) = writeln!(file, "{:?}", log) {
@@ -48,9 +51,9 @@ fn main() {
     }
 }
 
-fn get_json(url: &str) -> Result<ApiResult, Box <dyn std::error::Error>> {
+fn get_json(url: &str) -> Result<ApiResult, Box<dyn std::error::Error>> {
     let body = reqwest::blocking::get(url)?.text()?;
-    let res : ApiResult = serde_json::from_str(&body).expect("JSON was not well-formatted");
+    let res: ApiResult = serde_json::from_str(&body).expect("JSON was not well-formatted");
     //println!("{:?}", res);
     Ok(res)
 }
