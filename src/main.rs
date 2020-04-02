@@ -24,18 +24,17 @@ struct ApiResult {
 }
 
 fn main() {
-    let mut result = md5::compute(String::from("not a valid song"));
+    let mut result = String::from("");
     loop {
         let re = get_json("http://www.suedtirol1.it/routing/acc_fun_interaktiv/api/v1/playlist/index.json?v=1").unwrap();
-        let past = md5::compute(&re.past.title);
-        if past != result {
+        if re.past.title != result {
             let mut file = OpenOptions::new()
                 .write(true)
                 .append(true)
                 .create(true)
                 .open("/var/tmp/suedtirol1")
                 .unwrap();
-            let past = md5::compute(&re.past.title);
+            result = re.past.title.clone();
             let log = Log {
                 date : Utc::now().to_string(),
                 data : re,
@@ -44,7 +43,6 @@ fn main() {
             if let Err(e) = writeln!(file, "{:?}", log) {
                 eprintln!("Couldn't write to file: {}", e);
             }
-            result = past;
         }
         thread::sleep(time::Duration::from_millis(1000 * 60));
     }
