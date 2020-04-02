@@ -1,48 +1,37 @@
-# https://shaneutt.com/blog/rust-fast-small-docker-image-builds/
-# ------------------------------------------------------------------------------
-# Cargo Build Stage
-# ------------------------------------------------------------------------------
+#https://github.com/bjornmolin/rust-minimal-docker
+FROM clux/muslrust:stable as builder
 
-FROM rust:latest as cargo-build
+RUN groupadd -g 10001 -r dockergrp && useradd -r -g dockergrp -u 10001 dockeruser
 
-RUN apt-get update
+# Build the project with target x86_64-unknown-linux-musl
 
-RUN apt-get install musl-tools -y
+# Build dummy main with the project's Cargo lock and toml
+# This is a docker trick in order to avoid downloading and building 
+# dependencies when lock and toml not is modified.
+COPY Cargo.lock .
+COPY Cargo.toml .
 
-RUN rustup target add x86_64-unknown-linux-musl
+RUN mkdir src && \
+    echo "fn main() {print!(\"Dummy main\");} // dummy file" > src/main.rs
 
-WORKDIR /usr/src/suedtirol1-tracker
+RUN set -x && cargo build --target x86_64-unknown-linux-musl --release
 
-COPY Cargo.toml Cargo.toml
+RUN set -x && rm target/x86_64-unknown-linux-musl/release/deps/suedtirol*
+RUN touch /var/tmp/suedtirol1 && chmod 777 /var/tmp/suedtirol1
 
-RUN mkdir src/
+# Now add the rest of the project and build the real main
+COPY src ./src
+RUN set -x && cargo build --target x86_64-unknown-linux-musl --release
+RUN mkdir -p /build-out
+RUN set -x && cp target/x86_64-unknown-linux-musl/release/suedtirol1-tracker /build-out/
 
-RUN echo "fn main() {println!(\"if you see this, the build broke\")}" > src/main.rs
+# Create a minimal docker image 
+FROM scratch
 
-RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --release --target=x86_64-unknown-linux-musl
+COPY --from=builder /etc/passwd /etc/passwd
+USER dockeruser
 
-RUN rm -f target/x86_64-unknown-linux-musl/release/deps/suedtirol1-tracker*
-
-COPY . .
-
-RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --release --target=x86_64-unknown-linux-musl
-
-# ------------------------------------------------------------------------------
-# Final Stage
-# ------------------------------------------------------------------------------
-
-FROM alpine:latest
-
-RUN addgroup -g 1000 app
-
-RUN adduser -D -s /bin/sh -u 1000 -G app app
-
-WORKDIR /home/suedtirol1-tracker/bin/
-
-COPY --from=cargo-build /usr/src/suedtirol1-tracker/target/x86_64-unknown-linux-musl/release/suedtirol1-tracker .
-
-RUN chown app:app suedtirol1-tracker
-
-USER app
-
-CMD ["./suedtirol1-tracker"]
+ENV RUST_LOG="error,suedtirol1-tracker=info"
+COPY --from=builder /build-out/suedtirol1-tracker /
+COPY --from=builder /var/tmp/suedtirol1 /var/tmp/suedtirol1
+CMD ["/suedtirol1-tracker"]
