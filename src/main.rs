@@ -1,22 +1,22 @@
 use chrono::Utc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::{thread, time};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Log {
     date: String,
     data: ApiResult,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct Song {
     artist: String,
     title: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct ApiResult {
     past: Song,
     present: Option<Song>,
@@ -43,7 +43,7 @@ fn main() {
                 data: re,
             };
 
-            if let Err(e) = writeln!(file, "{:?}", log) {
+            if let Err(e) = writeln!(file, "{}", serde_json::to_string(&log).unwrap()) {
                 eprintln!("Couldn't write to file: {}", e);
             }
         }
@@ -54,6 +54,5 @@ fn main() {
 fn get_json(url: &str) -> Result<ApiResult, Box<dyn std::error::Error>> {
     let body = reqwest::blocking::get(url)?.text()?;
     let res: ApiResult = serde_json::from_str(&body).expect("JSON was not well-formatted");
-    //println!("{:?}", res);
     Ok(res)
 }
