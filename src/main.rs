@@ -35,7 +35,7 @@ fn main() {
         );
         match re {
             Ok(mut re) => {
-                let future = re.clone().future.unwrap().title;
+                let future = re.clone().past.unwrap().title;
                 if re.past.is_none() && re.present.is_none() {
                     re.present = re.future.clone();
                 }
