@@ -32,6 +32,6 @@ COPY --from=builder /etc/passwd /etc/passwd
 USER dockeruser
 
 ENV RUST_LOG="error,suedtirol1-tracker=info"
-COPY --from=builder /build-out/suedtirol1-tracker /
-COPY --from=builder /var/tmp/suedtirol1 /var/tmp/suedtirol1
+COPY --from=build-stage /build-out/suedtirol1-tracker /
+COPY --from=build-stage /var/tmp/suedtirol1 /var/tmp/suedtirol1
 CMD ["/suedtirol1-tracker"]
