@@ -17,7 +17,7 @@ build:
   only:
     - master
   before_script:
-    - docker login -u gitlab-ci-token $CI_JOB_TOKEN $REGISTRY
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
   script:
     - docker pull $IMAGE:latest || true
     - docker pull $IMAGE:build-stage || true
