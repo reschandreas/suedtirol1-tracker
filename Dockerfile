@@ -1,5 +1,5 @@
 #https://github.com/bjornmolin/rust-minimal-docker
-FROM clux/muslrust:stable as builder
+FROM clux/muslrust:stable as build-stage
 
 RUN groupadd -g 10001 -r dockergrp && useradd -r -g dockergrp -u 10001 dockeruser
 
@@ -26,7 +26,7 @@ RUN mkdir -p /build-out
 RUN set -x && cp target/x86_64-unknown-linux-musl/release/suedtirol1-tracker /build-out/
 
 # Create a minimal docker image 
-FROM scratch
+FROM scratch as runtime-stage
 
 COPY --from=builder /etc/passwd /etc/passwd
 USER dockeruser

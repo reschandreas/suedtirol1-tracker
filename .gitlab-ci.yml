@@ -16,10 +16,15 @@ build:
   stage: build
   only:
     - master
+  before_script:
+    - docker login -u gitlab-ci-token $CI_JOB_TOKEN $REGISTRY
   script:
-    - docker build -t $IMAGE:latest .
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
+    - docker pull $IMAGE:latest || true
+    - docker pull $IMAGE:build-stage || true
+    - docker build --target build-stage --cache-from $IMAGE:build-stage -t $IMAGE:build-stage .
+    - docker build --target runtime-stage --cache-from $IMAGE:build-stage --cache-from $IMAGE:latest -t $IMAGE:latest -t $IMAGE:latest .
     - docker push $IMAGE:latest
+    - docker push $IMAGE:build-stage
 
 deploy:
   stage: deploy
