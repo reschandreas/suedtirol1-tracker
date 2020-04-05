@@ -28,7 +28,7 @@ RUN set -x && cp target/x86_64-unknown-linux-musl/release/suedtirol1-tracker /bu
 # Create a minimal docker image 
 FROM scratch as runtime-stage
 
-COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=build-stage /etc/passwd /etc/passwd
 USER dockeruser
 
 ENV RUST_LOG="error,suedtirol1-tracker=info"
