@@ -161,7 +161,8 @@ fn from_api_result(api_result: Result<ApiResult, Box<dyn std::error::Error>>) ->
 }
 
 fn remove_new(mut title: String) -> String {
-    title.split_off(title.len() - 1 - 4)
+    title.split_off(title.len() - 1 - 4);
+    title
 }
 
 fn is_new(title: &String) -> bool {
