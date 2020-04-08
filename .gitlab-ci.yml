@@ -27,11 +27,9 @@ build:
     - docker push $IMAGE:latest
     - docker push $IMAGE:build-stage
 
-update_schema:
-  except:
-    - branches
+schema:
   only:
-    - tags
+    - master
   stage: schema
   script:
     - docker run --rm -v "$PWD:/volume" -w /volume -e DATABASE_URL="${DATABASE_URL}" clux/diesel-cli diesel migration run
