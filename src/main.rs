@@ -74,7 +74,7 @@ fn main() {
             }
         }
 
-        thread::sleep(time::Duration::from_secs(60 + rand::thread_rng().gen_range(0, 10)));
+        thread::sleep(time::Duration::from_secs(30 + rand::thread_rng().gen_range(0, 30)));
     }
 }
 
@@ -161,7 +161,7 @@ fn from_api_result(api_result: Result<ApiResult, Box<dyn std::error::Error>>) ->
 }
 
 fn remove_new(mut title: String) -> String {
-    title.split_off(title.len() - 1 - 4);
+    title.split_off(title.len() - 1 - 4 - 1);
     title
 }
 
