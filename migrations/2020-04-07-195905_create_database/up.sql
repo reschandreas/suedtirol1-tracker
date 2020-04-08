@@ -1,0 +1,14 @@
+CREATE TABLE songs (
+  id INTEGER NOT NULL,
+  title VARCHAR NOT NULL,
+  artist VARCHAR NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE(title, artist)
+);
+
+CREATE TABLE logs (
+  date TIMESTAMP NOT NULL PRIMARY KEY,
+  song INTEGER NOT NULL REFERENCES songs(id),
+  is_new BOOLEAN NOT NULL DEFAULT 'f'
+);
+
