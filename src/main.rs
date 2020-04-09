@@ -1,43 +1,17 @@
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
+
 use chrono::Utc;
 use rand::Rng;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::{thread, time};
+use crate::models::{ApiResult, Log, ParsedResult, Song};
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Log {
-    date: String,
-    data: Option<Song>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct Song {
-    artist: String,
-    title: String,
-    is_new: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct ParsedResult {
-    past: Option<Song>,
-    present: Option<Song>,
-    future: Option<Song>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct ApiResult {
-    past: Option<ApiSong>,
-    present: Option<ApiSong>,
-    future: Option<ApiSong>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct ApiSong {
-    artist: String,
-    title: String,
-}
+mod db;
+mod models;
 
 fn main() {
     let mut last_entry = String::new();
@@ -46,15 +20,15 @@ fn main() {
             "http://www.suedtirol1.it/routing/acc_fun_interaktiv/api/v1/playlist/index.json?v=1",
         );
         let parsed = from_api_result(api_result);
-        
+
         let new_entry = parsed.present;
 
         let current_title = match &new_entry {
             Some(new_entry) => new_entry.title.clone(),
-            None => String::new()
+            None => String::new(),
         };
 
-        if  last_entry != current_title {
+        if last_entry != current_title {
             let mut file = OpenOptions::new()
                 .write(true)
                 .append(true)
@@ -64,17 +38,25 @@ fn main() {
 
             last_entry = current_title.clone();
 
-            let log = Log {
+            let mut log = Log {
                 date: Utc::now().to_string(),
-                data: new_entry,
+                data: new_entry.clone(),
+                in_db: false,
             };
-
+            if new_entry.is_some() {
+                let data = new_entry.unwrap();
+                if self::db::add_log(Utc::now().naive_utc(), &data).is_some() {
+                    log.in_db = true;
+                }
+            }
             if let Err(e) = writeln!(file, "{}", serde_json::to_string(&log).unwrap()) {
                 eprintln!("Couldn't write to file {}", e);
             }
         }
 
-        thread::sleep(time::Duration::from_secs(30 + rand::thread_rng().gen_range(0, 30)));
+        thread::sleep(time::Duration::from_secs(
+            30 + rand::thread_rng().gen_range(0, 30),
+        ));
     }
 }
 

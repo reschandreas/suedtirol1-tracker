@@ -1,8 +1,7 @@
 CREATE TABLE songs (
-  id INTEGER NOT NULL,
+  id SERIAL PRIMARY KEY,
   title VARCHAR NOT NULL,
   artist VARCHAR NOT NULL,
-  PRIMARY KEY (id),
   UNIQUE(title, artist)
 );
 
