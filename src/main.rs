@@ -2,13 +2,12 @@
 extern crate diesel;
 extern crate dotenv;
 
+use crate::models::{ApiResult, Log, ParsedResult, Song};
 use chrono::Utc;
 use rand::Rng;
-use regex::Regex;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::{thread, time};
-use crate::models::{ApiResult, Log, ParsedResult, Song};
 
 mod db;
 mod models;
@@ -43,9 +42,8 @@ fn main() {
                 data: new_entry.clone(),
                 in_db: false,
             };
-            if new_entry.is_some() {
-                let data = new_entry.unwrap();
-                if self::db::add_log(Utc::now().naive_utc(), &data).is_some() {
+            if let Some(data) = new_entry {
+                if self::db::add_log(Utc::now().naive_utc(), data).is_some() {
                     log.in_db = true;
                 }
             }
@@ -71,14 +69,14 @@ fn get_json(url: &str) -> Result<ApiResult, Box<dyn std::error::Error>> {
                     let result = serde_json::from_str(&b);
 
                     match result {
-                        Ok(result) => return Ok(result),
-                        Err(e) => return Err(Box::new(e)),
+                        Ok(result) => Ok(result),
+                        Err(e) => Err(Box::new(e)),
                     }
                 }
-                Err(e) => return Err(Box::new(e)),
+                Err(e) => Err(Box::new(e)),
             }
         }
-        Err(e) => return Err(Box::new(e)),
+        Err(e) => Err(Box::new(e)),
     }
 }
 
@@ -88,56 +86,43 @@ fn from_api_result(api_result: Result<ApiResult, Box<dyn std::error::Error>>) ->
         present: None::<Song>,
         future: None::<Song>,
     };
-
-    match api_result {
-        Ok(api_result) => {
-            match api_result.past {
-                Some(past) => {
-                    let new = is_new(&past.title);
-                    parsed.past = Some(Song {
-                        artist: past.artist,
-                        title: if new {
-                            remove_new(past.title)
-                        } else {
-                            past.title
-                        },
-                        is_new: new,
-                    })
-                }
-                None => {}
-            }
-            match api_result.present {
-                Some(present) => {
-                    let new = is_new(&present.title);
-                    parsed.present = Some(Song {
-                        artist: present.artist,
-                        title: if new {
-                            remove_new(present.title.clone())
-                        } else {
-                            present.title
-                        },
-                        is_new: new,
-                    })
-                }
-                None => {}
-            }
-            match api_result.future {
-                Some(future) => {
-                    let new = is_new(&future.title);
-                    parsed.future = Some(Song {
-                        artist: future.artist,
-                        title: if new {
-                            remove_new(future.title.clone())
-                        } else {
-                            future.title
-                        },
-                        is_new: new,
-                    })
-                }
-                None => {}
-            }
+    if let Ok(api_result) = api_result {
+        if let Some(past) = api_result.past {
+            let new = is_new(&past.title);
+            parsed.past = Some(Song {
+                artist: past.artist,
+                title: if new {
+                    remove_new(past.title)
+                } else {
+                    past.title
+                },
+                is_new: new,
+            })
         }
-        Err(_) => {}
+        if let Some(present) = api_result.present {
+            let new = is_new(&present.title);
+            parsed.present = Some(Song {
+                artist: present.artist,
+                title: if new {
+                    remove_new(present.title.clone())
+                } else {
+                    present.title
+                },
+                is_new: new,
+            })
+        }
+        if let Some(future) = api_result.future {
+            let new = is_new(&future.title);
+            parsed.future = Some(Song {
+                artist: future.artist,
+                title: if new {
+                    remove_new(future.title.clone())
+                } else {
+                    future.title
+                },
+                is_new: new,
+            })
+        }
     }
     parsed
 }
@@ -147,12 +132,6 @@ fn remove_new(mut title: String) -> String {
     title
 }
 
-fn is_new(title: &String) -> bool {
-    let regex = Regex::new(r"\*NEU\*").unwrap();
-
-    if regex.is_match(title) {
-        true
-    } else {
-        false
-    }
+fn is_new(title: &str) -> bool {
+    title.contains("*NEU*")
 }
