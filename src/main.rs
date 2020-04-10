@@ -18,16 +18,17 @@ fn main() {
         let api_result = get_json(
             "http://www.suedtirol1.it/routing/acc_fun_interaktiv/api/v1/playlist/index.json?v=1",
         );
-        let parsed = from_api_result(api_result);
+
+        let parsed = from_api_result(&api_result);
+
+        let new_result = match api_result {
+            Ok(api) => api.unparsed,
+            Err(_) => String::new(),
+        };
 
         let new_entry = parsed.present;
 
-        let current_title = match &new_entry {
-            Some(new_entry) => new_entry.title.clone(),
-            None => String::new(),
-        };
-
-        if last_entry != current_title {
+        if last_entry != new_result {
             let mut file = OpenOptions::new()
                 .write(true)
                 .append(true)
@@ -35,7 +36,7 @@ fn main() {
                 .open("/var/tmp/suedtirol1")
                 .unwrap();
 
-            last_entry = current_title.clone();
+            last_entry = new_result.clone();
 
             let mut log = Log {
                 date: Utc::now().to_string(),
@@ -66,10 +67,14 @@ fn get_json(url: &str) -> Result<ApiResult, Box<dyn std::error::Error>> {
             let body = response.text();
             match body {
                 Ok(b) => {
-                    let result = serde_json::from_str(&b);
+                    let result: std::result::Result<ApiResult, serde_json::error::Error> =
+                        serde_json::from_str(&b);
 
                     match result {
-                        Ok(result) => Ok(result),
+                        Ok(mut result) => {
+                            result.unparsed = b;
+                            Ok(result)
+                        }
                         Err(e) => Err(Box::new(e)),
                     }
                 }
@@ -80,45 +85,45 @@ fn get_json(url: &str) -> Result<ApiResult, Box<dyn std::error::Error>> {
     }
 }
 
-fn from_api_result(api_result: Result<ApiResult, Box<dyn std::error::Error>>) -> ParsedResult {
+fn from_api_result(api_result: &Result<ApiResult, Box<dyn std::error::Error>>) -> ParsedResult {
     let mut parsed = ParsedResult {
         past: None::<Song>,
         present: None::<Song>,
         future: None::<Song>,
     };
     if let Ok(api_result) = api_result {
-        if let Some(past) = api_result.past {
+        if let Some(past) = &api_result.past {
             let new = is_new(&past.title);
             parsed.past = Some(Song {
-                artist: past.artist,
+                artist: past.artist.clone(),
                 title: if new {
-                    remove_new(past.title)
+                    remove_new(past.title.clone())
                 } else {
-                    past.title
+                    past.title.clone()
                 },
                 is_new: new,
             })
         }
-        if let Some(present) = api_result.present {
+        if let Some(present) = &api_result.present {
             let new = is_new(&present.title);
             parsed.present = Some(Song {
-                artist: present.artist,
+                artist: present.artist.clone(),
                 title: if new {
                     remove_new(present.title.clone())
                 } else {
-                    present.title
+                    present.title.clone()
                 },
                 is_new: new,
             })
         }
-        if let Some(future) = api_result.future {
+        if let Some(future) = &api_result.future {
             let new = is_new(&future.title);
             parsed.future = Some(Song {
-                artist: future.artist,
+                artist: future.artist.clone(),
                 title: if new {
                     remove_new(future.title.clone())
                 } else {
-                    future.title
+                    future.title.clone()
                 },
                 is_new: new,
             })

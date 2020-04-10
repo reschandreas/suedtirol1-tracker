@@ -23,6 +23,7 @@ pub struct ParsedResult {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ApiResult {
+    pub unparsed: String,
     pub past: Option<ApiSong>,
     pub present: Option<ApiSong>,
     pub future: Option<ApiSong>,
