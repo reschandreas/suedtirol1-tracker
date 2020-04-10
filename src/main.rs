@@ -22,7 +22,7 @@ fn main() {
         let parsed = from_api_result(&api_result);
 
         let new_result = match api_result {
-            Ok(api) => api.unparsed,
+            Ok(api) => api.unparsed.unwrap(),
             Err(_) => String::new(),
         };
 
@@ -72,7 +72,7 @@ fn get_json(url: &str) -> Result<ApiResult, Box<dyn std::error::Error>> {
 
                     match result {
                         Ok(mut result) => {
-                            result.unparsed = b;
+                            result.unparsed = Some(b);
                             Ok(result)
                         }
                         Err(e) => Err(Box::new(e)),
