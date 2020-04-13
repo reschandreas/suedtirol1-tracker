@@ -96,11 +96,7 @@ fn from_api_result(api_result: &Result<ApiResult, Box<dyn std::error::Error>>) -
             let new = is_new(&past.title);
             parsed.past = Some(Song {
                 artist: past.artist.clone(),
-                title: if new {
-                    remove_new(past.title.clone())
-                } else {
-                    past.title.clone()
-                },
+                title: remove_new(past.title.clone()),
                 is_new: new,
             })
         }
@@ -108,11 +104,7 @@ fn from_api_result(api_result: &Result<ApiResult, Box<dyn std::error::Error>>) -
             let new = is_new(&present.title);
             parsed.present = Some(Song {
                 artist: present.artist.clone(),
-                title: if new {
-                    remove_new(present.title.clone())
-                } else {
-                    present.title.clone()
-                },
+                title: remove_new(present.title.clone()),
                 is_new: new,
             })
         }
@@ -120,11 +112,7 @@ fn from_api_result(api_result: &Result<ApiResult, Box<dyn std::error::Error>>) -
             let new = is_new(&future.title);
             parsed.future = Some(Song {
                 artist: future.artist.clone(),
-                title: if new {
-                    remove_new(future.title.clone())
-                } else {
-                    future.title.clone()
-                },
+                title: remove_new(future.title.clone()),
                 is_new: new,
             })
         }
@@ -133,10 +121,14 @@ fn from_api_result(api_result: &Result<ApiResult, Box<dyn std::error::Error>>) -
 }
 
 fn remove_new(mut title: String) -> String {
-    title.split_off(title.len() - 1 - 4 - 1);
+    if title.contains("*NEU*") {
+        title.split_off(title.len() - 1 - 4 - 1);
+    } else if title.contains("* NEU*") {
+        title.split_off(title.len() - 1 - 5 - 1);
+    }
     title
 }
 
 fn is_new(title: &str) -> bool {
-    title.contains("*NEU*")
+    title.contains("*NEU*") || title.contains("* NEU*")
 }
