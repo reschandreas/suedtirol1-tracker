@@ -36,7 +36,7 @@ schema:
     - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
     - chmod 600 /root/.ssh/id_rsa
   script:
-      - COMMAND="docker run --rm -v \"$PWD:/volume\" -w /volume -e DATABASE_URL=\"${DATABASE_URL}\" clux/diesel-cli diesel migration run"
+    - COMMAND="docker run --rm -v \"$PWD:/volume\" -w /volume -e DATABASE_URL=\"${DATABASE_URL}\" clux/diesel-cli diesel migration run"
     - ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@{SERVER_URL} "$COMMAND"
 
 deploy:
