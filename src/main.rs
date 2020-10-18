@@ -5,8 +5,6 @@ extern crate dotenv;
 use crate::models::{ApiResult, Log, ParsedResult, Song};
 use chrono::Utc;
 use rand::Rng;
-use std::fs::OpenOptions;
-use std::io::Write;
 use std::{thread, time};
 
 mod db;
@@ -29,13 +27,6 @@ fn main() {
         let new_entry = parsed.present;
 
         if last_entry != new_result {
-            let mut file = OpenOptions::new()
-                .write(true)
-                .append(true)
-                .create(true)
-                .open("/var/tmp/suedtirol1")
-                .unwrap();
-
             last_entry = new_result.clone();
 
             let mut log = Log {
@@ -47,9 +38,6 @@ fn main() {
                 if self::db::add_log(Utc::now().naive_utc(), data).is_some() {
                     log.in_db = true;
                 }
-            }
-            if let Err(e) = writeln!(file, "{}", serde_json::to_string(&log).unwrap()) {
-                eprintln!("Couldn't write to file {}", e);
             }
         }
 
@@ -122,9 +110,9 @@ fn from_api_result(api_result: &Result<ApiResult, Box<dyn std::error::Error>>) -
 
 fn remove_new(mut title: String) -> String {
     if title.contains("*NEU*") {
-        title.split_off(title.len() - 1 - 4 - 1);
+        title.truncate(title.len() - 1 - 4 - 1);
     } else if title.contains("* NEU*") {
-        title.split_off(title.len() - 1 - 5 - 1);
+        title.truncate(title.len() - 1 - 5 - 1);
     }
     title
 }
