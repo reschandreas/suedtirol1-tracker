@@ -53,7 +53,7 @@ deploy:
     - BUILD="docker-compose -f andreas-compose.yml up -d $DOCKER_SERVICE_NAME"
     - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
 
-  remove-old-image:
+remove-old-image:
   stage: remove-old-image
   only:
     - master
