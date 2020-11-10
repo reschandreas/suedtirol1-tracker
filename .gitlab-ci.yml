@@ -4,13 +4,14 @@ services:
   - docker:dind
 
 variables:
-  REGISTRY: registry.gitlab.com
-  IMAGE: $REGISTRY/andreas_resch/suedtirol1-tracker
+  IMAGE: $CI_REGISTRY/andreas/suedtirol1-tracker
   DOCKER_SERVICE_NAME: suedtirol1-tracker
 
 stages:
   - build
+  - retag-old-image
   - deploy
+  - remove-old-image
 
 build:
   stage: build
@@ -26,6 +27,18 @@ build:
     - docker push $IMAGE:latest
     - docker push $IMAGE:build-stage
 
+retag-old-image:
+  stage: retag-old-image
+  only:
+    - master
+  before_script:
+    - mkdir -p /root/.ssh
+    - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+  script:
+    - RETAG="docker tag $IMAGE:latest $IMAGE:old || true"
+    - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$RETAG"
+
 deploy:
   stage: deploy
   only:
@@ -34,10 +47,22 @@ deploy:
     - mkdir -p /root/.ssh
     - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
     - chmod 600 /root/.ssh/id_rsa
-
   script:
     - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY"
     - PULL="docker-compose -f andreas-compose.yml pull --quiet"
     - BUILD="docker-compose -f andreas-compose.yml up -d $DOCKER_SERVICE_NAME"
     - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
+
+  remove-old-image:
+  stage: remove-old-image
+  only:
+    - master
+  before_script:
+    - mkdir -p /root/.ssh
+    - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+
+  script:
+    - REMOVE="docker rmi $IMAGE:old || true"
+    - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$REMOVE"
 
