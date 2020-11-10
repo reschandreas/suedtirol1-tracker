@@ -18,7 +18,7 @@ build:
   only:
     - master
   before_script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
     - docker pull $IMAGE:latest || true
     - docker pull $IMAGE:build-stage || true
@@ -48,7 +48,7 @@ deploy:
     - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
     - chmod 600 /root/.ssh/id_rsa
   script:
-    - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY"
+    - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
     - PULL="docker-compose -f andreas-compose.yml pull --quiet"
     - BUILD="docker-compose -f andreas-compose.yml up -d $DOCKER_SERVICE_NAME"
     - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
