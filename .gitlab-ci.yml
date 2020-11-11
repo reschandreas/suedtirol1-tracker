@@ -37,7 +37,7 @@ retag-old-image:
     - chmod 600 /root/.ssh/id_rsa
   script:
     - RETAG="docker tag $IMAGE:latest $IMAGE:old || true"
-    - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$RETAG"
+    - ssh -p $SSH_PORT -i /root/.ssh/id_rsa -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} ${SSH_USER}@${SERVER_URL} "$RETAG"
 
 deploy:
   stage: deploy
@@ -51,7 +51,7 @@ deploy:
     - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
     - PULL="docker-compose -f andreas-compose.yml pull --quiet"
     - BUILD="docker-compose -f andreas-compose.yml up -d $DOCKER_SERVICE_NAME"
-    - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
+    - ssh -p $SSH_PORT -i /root/.ssh/id_rsa -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} ${SSH_USER}@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
 
 remove-old-image:
   stage: remove-old-image
@@ -64,5 +64,5 @@ remove-old-image:
 
   script:
     - REMOVE="docker rmi $IMAGE:old || true"
-    - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$REMOVE"
+    - ssh -p $SSH_PORT -i /root/.ssh/id_rsa -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} ${SSH_USER}@${SERVER_URL} "$REMOVE"
 
