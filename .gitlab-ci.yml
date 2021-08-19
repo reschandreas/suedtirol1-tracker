@@ -4,20 +4,21 @@ services:
   - docker:dind
 
 variables:
-  REGISTRY: registry.gitlab.com
-  IMAGE: $REGISTRY/andreas_resch/suedtirol1-tracker
+  IMAGE: $CI_REGISTRY/andreas/suedtirol1-tracker
   DOCKER_SERVICE_NAME: suedtirol1-tracker
 
 stages:
   - build
+  - retag-old-image
   - deploy
+  - remove-old-image
 
 build:
   stage: build
   only:
     - master
   before_script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
     - docker pull $IMAGE:latest || true
     - docker pull $IMAGE:build-stage || true
@@ -25,6 +26,18 @@ build:
     - docker build --target runtime-stage --cache-from $IMAGE:build-stage --cache-from $IMAGE:latest -t $IMAGE:latest -t $IMAGE:latest .
     - docker push $IMAGE:latest
     - docker push $IMAGE:build-stage
+
+retag-old-image:
+  stage: retag-old-image
+  only:
+    - master
+  before_script:
+    - mkdir -p /root/.ssh
+    - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+  script:
+    - RETAG="docker tag $IMAGE:latest $IMAGE:old || true"
+    - ssh -p $SSH_PORT -i /root/.ssh/id_rsa -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} ${SSH_USER}@${SERVER_URL} "$RETAG"
 
 deploy:
   stage: deploy
@@ -34,10 +47,22 @@ deploy:
     - mkdir -p /root/.ssh
     - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
     - chmod 600 /root/.ssh/id_rsa
-
   script:
-    - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY"
+    - LOGIN="docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
     - PULL="docker-compose -f andreas-compose.yml pull --quiet"
     - BUILD="docker-compose -f andreas-compose.yml up -d $DOCKER_SERVICE_NAME"
-    - ssh -p 13420 -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no deploy@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
+    - ssh -p $SSH_PORT -i /root/.ssh/id_rsa -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} ${SSH_USER}@${SERVER_URL} "$LOGIN && $PULL && $BUILD"
+
+remove-old-image:
+  stage: remove-old-image
+  only:
+    - master
+  before_script:
+    - mkdir -p /root/.ssh
+    - echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+
+  script:
+    - REMOVE="docker rmi $IMAGE:old || true"
+    - ssh -p $SSH_PORT -i /root/.ssh/id_rsa -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} ${SSH_USER}@${SERVER_URL} "$REMOVE"
 
