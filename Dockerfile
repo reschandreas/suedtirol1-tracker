@@ -1,4 +1,4 @@
-FROM rust:1.71 as build-stage
+FROM rust:1.82 as build-stage
 
 COPY Cargo.lock .
 COPY Cargo.toml .
